@@ -50,5 +50,6 @@ open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(pwa)
 for f in ('sw.js', 'manifest.webmanifest', 'README.md'):
     shutil.copy(os.path.join(SRC, f), os.path.join(OUT, f))
 os.makedirs(os.path.join(DEV, 'out'), exist_ok=True)
-open(os.path.join(DEV, 'out', 'artifact.html'), 'w', encoding='utf-8').write(page.replace('<!--SW-->', ''))
+assert page.count('/*ARTIFACT*/false') == 1
+open(os.path.join(DEV, 'out', 'artifact.html'), 'w', encoding='utf-8').write(page.replace('<!--SW-->', '').replace('/*ARTIFACT*/false', 'true'))
 print('built', len(pwa.encode()) // 1024, 'KB, version', ver, '->', OUT)

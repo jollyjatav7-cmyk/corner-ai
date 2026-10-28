@@ -4,6 +4,7 @@
   var B = BUNDLE;
   var ABOUT_HTML = /*ABOUT*/'';
   var APP_VER = '/*APPVER*/';
+  var IN_ARTIFACT = /*ARTIFACT*/false;   // true in the copy published inside Claude (no service worker, no file saving)
   var LS_KEY = 'corner_goal_ai_v1';
   var $ = function (id) { return document.getElementById(id); };
 
@@ -1528,10 +1529,11 @@
     var obj = { app: '角球进球预测', fmt: 1, ver: APP_VER, exported: new Date().toISOString().slice(0, 16), data_until: S.extraUntil || B.data_until, readme: README, matches: ms, recs: REC.recs,
                 unused_bets: S.net.unk || [] };
     var text = JSON.stringify(obj), name = '角球进球预测_记录_' + dayKey(new Date()) + '.json', canShare = false;
-    try { canShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File([text], name, { type: 'application/json' })] })); } catch (e) { canShare = false; }
-    var h = '<p class="hint">' + REC.recs.length + ' 注、' + ms.length + ' 场。可以存成文件，或者复制文字直接贴给 Claude 分析。</p><div class="row-btns">' +
+    try { canShare = !IN_ARTIFACT && !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File([text], name, { type: 'application/json' })] })); } catch (e) { canShare = false; }
+    // inside the Claude page files cannot be saved: copying the text is the way out there
+    var h = '<p class="hint">' + REC.recs.length + ' 注、' + ms.length + ' 场。' + (IN_ARTIFACT ? '复制文字直接贴给 Claude 分析（存成文件请用主屏幕上的 app）。' : '可以存成文件，或者复制文字直接贴给 Claude 分析。') + '</p><div class="row-btns">' +
       (canShare ? '<button class="btn pri" data-x="share">分享文件</button>' : '<button class="btn pri" data-x="copy">复制文字</button>') +
-      '<button class="btn" data-x="dl">下载文件</button></div>' + (canShare ? '<div class="row-btns"><button class="btn" data-x="copy">复制文字</button></div>' : '') +
+      (IN_ARTIFACT ? '' : '<button class="btn" data-x="dl">下载文件</button>') + '</div>' + (canShare ? '<div class="row-btns"><button class="btn" data-x="copy">复制文字</button></div>' : '') +
       '<textarea id="exp-text" class="ta">' + esc(text) + '</textarea>';
     openSheet('导出记录', h, function (e) {
       var t = closestAttr(e.target, 'data-x', $('sheet-body'));
