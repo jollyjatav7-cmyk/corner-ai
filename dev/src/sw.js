@@ -1,7 +1,7 @@
 /* 角球进球预测：离线缓存
    第一次联网打开时把文件存到设备上；之后优先用本机文件（离线也能开），
    有网络时在后台取新版，下次打开就是新版。每次发布把版本号加 1。 */
-const CACHE = 'corner-ai-v2';
+const CACHE = 'corner-ai-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

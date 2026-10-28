@@ -18,12 +18,13 @@ ver = re.search(r"corner-ai-(v\d+)", read(SRC, 'sw.js')).group(1)
 t = read(SRC, 'app.html')
 bundle = read(DATA, 'bundle.json')
 core = read(SRC, 'app_core.js')
+net = read(SRC, 'app_net.js')
 ui = read(SRC, 'app_ui.js').replace("/*ABOUT*/''", json.dumps(read(SRC, 'about.html'), ensure_ascii=False)).replace('/*APPVER*/', ver)
-for name, s in [('bundle', bundle), ('core', core), ('ui', ui)]:
+for name, s in [('bundle', bundle), ('core', core), ('net', net), ('ui', ui)]:
     assert '</script' not in s.lower(), name
-for key in ('/*BUNDLE*/null', '/*CORE*/', '/*UI*/', '<!--SW-->'):
+for key in ('/*BUNDLE*/null', '/*CORE*/', '/*NET*/', '/*UI*/', '<!--SW-->'):
     assert t.count(key) == 1, key
-page = t.replace('/*BUNDLE*/null', bundle).replace('/*CORE*/', core).replace('/*UI*/', ui)
+page = t.replace('/*BUNDLE*/null', bundle).replace('/*CORE*/', core).replace('/*NET*/', net).replace('/*UI*/', ui)
 
 head = '''<!doctype html>
 <html lang="zh-Hans">

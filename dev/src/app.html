@@ -64,7 +64,7 @@ button { cursor: pointer; }
 .brand { font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
 .brand b { color: var(--accent); }
 .datechip { font-size: 12px; color: var(--muted); }
-.tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-top: 8px; background: var(--panel-2); border-radius: 10px; padding: 3px; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 8px; background: var(--panel-2); border-radius: 10px; padding: 3px; }
 .tabs button { border: 0; background: transparent; padding: 7px 0; border-radius: 8px; font-weight: 600; color: var(--muted); }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
 
@@ -293,6 +293,59 @@ body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-b
 .trow .chipb { padding: 5px 9px; min-width: 34px; }
 @media (min-width: 1000px) { .sdl { grid-template-columns: 56px 86px 84px 70px 76px; justify-content: space-between; } }
 @media (max-width: 380px) { .sdl { grid-template-columns: 40px 60px minmax(0, 1fr) 48px 56px; grid-gap: 5px; gap: 5px; } .sdl .sf { font-size: 15px; } }
+/* ---------- online bar, sheet, toast ---------- */
+.netbar { display: -webkit-box; display: flex; flex-wrap: wrap; align-items: center; margin: 0 0 6px; }
+.netbar > * { margin: 0 8px 6px 0; }
+.netbar .btn { padding: 8px 12px; }
+.nt { font-size: 12.5px; color: var(--muted); }
+.lnk { border: 0; background: transparent; color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 2px 4px; text-decoration: underline; }
+.netmsg { margin: 0 0 6px; }
+.tag.net { color: var(--accent); }
+.tag.pos { color: var(--pos); } .tag.neg { color: var(--neg); }
+.ob.net { color: var(--accent); border-style: dashed; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.save-row { margin-top: 10px; }
+.saved { color: var(--pos); }
+.btn.wide { width: 100%; margin-top: 2px; }
+.sheet { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40; background: rgba(0,0,0,0.5); display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; justify-content: flex-end; }
+.sheet-in { background: var(--panel); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; max-height: 82%; overflow-y: auto; -webkit-overflow-scrolling: touch; width: 100%; max-width: 640px; margin: 0 auto;
+  padding: 12px 16px; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px) + var(--pip-bot)); }
+.sheet-hd { display: -webkit-box; display: flex; align-items: center; margin-bottom: 8px; }
+.sheet-hd b { -webkit-box-flex: 1; flex: 1 1 auto; font-size: 16px; }
+.sheet-hd .btn { padding: 6px 14px; }
+.pick { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 9px 11px; margin-top: 8px; }
+.pick b { display: block; font-size: 15px; }
+.pick small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.ta { width: 100%; min-height: 140px; margin-top: 10px; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); border-radius: 9px; padding: 8px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+.filebtn { position: relative; overflow: hidden; text-align: center; }
+.filebtn input { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; }
+.mtoast { position: fixed; left: 16px; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px) + var(--pip-bot)); z-index: 50; max-width: 520px; margin: 0 auto;
+  background: var(--fg); color: var(--bg); border-radius: 12px; padding: 10px 14px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+/* ---------- records ---------- */
+.mc { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 8px 10px; margin-top: 10px; }
+.mc-h { display: -webkit-box; display: flex; flex-wrap: wrap; align-items: baseline; }
+.mc-h > * { margin-right: 8px; }
+.mc-h b { font-size: 15px; }
+.mc-h .sub { font-size: 12px; color: var(--muted); }
+.mc-r { font-size: 13px; margin-top: 4px; }
+.mc-r small { color: var(--muted); }
+.mc-r.miss { color: var(--muted); }
+.rr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; grid-gap: 8px; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); margin-top: 6px; }
+.rr .t { font-size: 13.5px; font-weight: 600; min-width: 0; }
+.rr .t .o { font-family: var(--font-num); color: var(--accent); font-size: 15px; }
+.rr .t small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.oc { font-family: var(--font-num); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.oc.win { color: var(--pos); } .oc.lose { color: var(--neg); } .oc.push, .oc.pend { color: var(--muted); }
+.oc.pend { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; }
+.mc-b { display: -webkit-box; display: flex; justify-content: flex-end; margin-top: 4px; }
+.mc-b .lnk { margin-left: 12px; }
+.ed { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; }
+.ed-r { display: -webkit-box; display: flex; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.ed-r .tl { width: 78px; font-size: 12.5px; color: var(--muted); }
+.ed-r .sep { margin: 0 6px; color: var(--muted); font-weight: 700; }
+.kpi .v.pos { color: var(--pos); } .kpi .v.neg { color: var(--neg); }
+#rec-stats .mk td, #rec-stats .mk th { padding-left: 4px; padding-right: 4px; }
+@media (max-width: 380px) { .tabs button { font-size: 14px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -304,6 +357,7 @@ body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-b
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-pre" aria-selected="true">赛前</button>
     <button role="tab" id="tab-live" aria-selected="false">滚球</button>
+    <button role="tab" id="tab-rec" aria-selected="false">记录</button>
     <button role="tab" id="tab-about" aria-selected="false">说明</button>
   </div>
 </header>
@@ -388,10 +442,21 @@ body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-b
    <div class="col" id="live-R"></div>
   </section>
 
+  <!-- ===================== 记录 ===================== -->
+  <section id="v-rec" class="cols" hidden>
+   <div class="col" id="rec-L">
+    <div class="panel" id="rec-act"></div>
+    <div class="panel" id="rec-stats"></div>
+    <div class="panel" id="rec-list"></div>
+   </div>
+   <div class="col" id="rec-R"></div>
+  </section>
+
   <!-- ===================== 说明 ===================== -->
   <section id="v-about" class="cols about" hidden>
    <div class="col" id="about-L">
     <div class="panel" id="about-data"></div>
+    <div class="panel" id="about-net"></div>
     <div class="panel" id="about-set">
       <h2>显示</h2>
       <div class="fg c2">
@@ -406,6 +471,13 @@ body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-b
   </section>
 </main>
 
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-in">
+    <div class="sheet-hd"><b id="sheet-title"></b><button class="btn" id="sheet-x">关闭</button></div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+<div class="mtoast" id="msg-toast" role="status" hidden></div>
 <div class="kp" id="kp" hidden>
   <div class="kp-in">
     <div class="kp-hd"><div class="tt" id="kp-title"></div><button class="btn pri" data-kp="done" id="kp-done">完成</button></div>
@@ -424,5 +496,6 @@ body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-b
 
 <script>var BUNDLE = /*BUNDLE*/null;</script>
 <script>/*CORE*/</script>
+<script>/*NET*/</script>
 <script>/*UI*/</script>
 <!--SW-->

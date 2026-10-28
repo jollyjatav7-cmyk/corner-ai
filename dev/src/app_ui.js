@@ -36,7 +36,7 @@
     setup: { li: 0, hi: 0, ai: 1, other: false, oh: '', oa: '', avg: '10.0', share: '54' },
     live: { per: 1, ht: false, baseMin: 0, baseTs: 0, running: false, added: '', added1: '',
             gh: 0, ga: 0, ch: 0, ca: 0, rh: 0, ra: 0 },
-    boards: {}, lbMode: 'now', recent: [], rid: 1,
+    boards: {}, lbMode: 'now', recent: [], rid: 1, net: { key: '', used: {}, from: '' },
     extra: [], extraUntil: null, updatedAt: null,
     view: { pip: 'none', piph: '200' }
   };
@@ -48,6 +48,8 @@
       var n = MK[r.m].k === 'x3' ? 3 : 2;
       while (r.o.length < n) r.o.push('');
       r.o = r.o.slice(0, n).map(function (x) { return oddsVal(x) ? oddsVal(x).toFixed(2) : ''; });
+      r.os = r.o.map(function (x, i) { return r.os && r.os[i] === 'net' && (x || r.alt) ? 'net' : ''; });
+      if (typeof r.book !== 'string') r.book = '';
       if (hasLine(r.m)) { if (typeof r.l !== 'number' || !isFinite(r.l)) { r.l = null; r.auto = true; } else r.l = q4(r.l); }
       else { r.l = null; r.auto = false; }
       if (typeof r.id !== 'number') r.id = S.rid++;
@@ -59,7 +61,7 @@
       var raw = window.localStorage.getItem(LS_KEY);
       if (!raw) return;
       var o = JSON.parse(raw);
-      ['setup', 'live', 'view'].forEach(function (k) { if (o[k]) for (var kk in o[k]) S[k][kk] = o[k][kk]; });
+      ['setup', 'live', 'view', 'net'].forEach(function (k) { if (o[k]) for (var kk in o[k]) S[k][kk] = o[k][kk]; });
       if (o.rid > 0) S.rid = o.rid;
       if (o.boards && typeof o.boards === 'object') {
         for (var k in o.boards) {
@@ -76,7 +78,7 @@
   }
   function save() {
     try {
-      window.localStorage.setItem(LS_KEY, JSON.stringify({ setup: S.setup, live: S.live, view: S.view, boards: S.boards, lbMode: S.lbMode,
+      window.localStorage.setItem(LS_KEY, JSON.stringify({ setup: S.setup, live: S.live, view: S.view, boards: S.boards, lbMode: S.lbMode, net: S.net,
         recent: S.recent, rid: S.rid, extra: S.extra, extraUntil: S.extraUntil, updatedAt: S.updatedAt, dataUntil: B.data_until,
         tab: S.tab, lastAuto: S.lastAuto || 0 }));
     } catch (e) { /* ignore */ }
@@ -125,7 +127,7 @@
     var n = MK[m].k === 'x3' ? 3 : 2, o = [];
     for (var i = 0; i < n; i++) o.push('');
     var withLine = hasLine(m), given = typeof l === 'number' && isFinite(l);
-    return { id: S.rid++, m: m, l: withLine && given ? q4(l) : null, auto: withLine && !given, o: o, ts: 0 };
+    return { id: S.rid++, m: m, l: withLine && given ? q4(l) : null, auto: withLine && !given, o: o, os: o.map(function () { return ''; }), book: '', ts: 0 };
   }
   function tmpl(kind) { return TPL[kind].map(function (m) { return newRow(m); }); }
   function mkey() { return S.setup.other ? 'other' : S.setup.li + ':' + S.setup.hi + ':' + S.setup.ai; }
@@ -346,6 +348,7 @@
     var ev = off ? null : rowEval(r, ctx), mg = margin(r), stale = isStale(kind, r);
     var h = '<div class="br' + (act ? ' act' : '') + (off ? ' off' : '') + (stale ? ' stale' : '') + '" data-id="' + r.id + '"><div class="br-h"><span class="br-n">' + esc(d.n);
     if (cal) h += ' <span class="tag">校准用</span>';
+    if (r.book && r.os && r.os.some(function (x, i) { return x === 'net' && r.o[i]; })) h += ' <span class="tag net">联网·' + esc(r.book) + '</span>';
     if (mg !== null) h += ' <small' + (mg < 0 || mg > 0.15 ? ' class="bad"' : '') + '>水 ' + (mg * 100).toFixed(1) + '%</small>';
     if (kind === 'live' && !stale && r.ts && r.o.some(function (x) { return !!x; })) {
       var age = Math.floor((Date.now() - r.ts) / 60000);
@@ -362,7 +365,7 @@
       var shown = on && !KP.fresh ? bufShow(KP.buf) : (r.o[s] || '');
       var bad = on && !KP.fresh && KP.buf && !oddsVal(bufVal(KP.buf));
       h += '<div class="sdl"><span class="sl">' + esc(labs[s]) + '</span>' +
-        '<button class="ob' + (on ? ' on' : '') + (bad ? ' bad' : '') + '" data-a="odd" data-s="' + s + '" aria-label="' + esc(sideLong(r, s)) + ' 赔率">' +
+        '<button class="ob' + (on ? ' on' : '') + (bad ? ' bad' : '') + (!on && r.os && r.os[s] === 'net' && r.o[s] ? ' net' : '') + '" data-a="odd" data-s="' + s + '" aria-label="' + esc(sideLong(r, s)) + ' 赔率">' +
         (shown ? esc(shown) : '<span class="ph">赔率</span>') + '</button>' +
         '<span class="sw">' + (st ? pct(st.win) + (st.push > 0.005 ? '<small>走水 ' + Math.round(st.push * 100) + '%</small>' : '') : '—') + '</span>' +
         '<span class="sf">' + (st ? fo(st.fair) : '—') + '</span>' +
@@ -371,7 +374,7 @@
     return h + '</div>';
   }
   function boardHTML(kind, ctx) {
-    var rows = board()[kind], h = '<h2>' + (kind === 'pre' ? '盘口板' : '滚球盘口板') + ' <span class="sub">（平台的盘口和欧赔）</span></h2>';
+    var rows = board()[kind], h = '<h2>' + (kind === 'pre' ? '盘口板' : '滚球盘口板') + ' <span class="sub">（平台的盘口和欧赔）</span></h2>' + netBar(kind);
     if (kind === 'live') {
       h += '<div class="seg"><span>滚球让球：</span>' +
         '<button class="chipb" data-a="mode" data-v="now" aria-pressed="' + (S.lbMode !== 'all') + '">从现在比分起算</button>' +
@@ -425,6 +428,10 @@
     else if (items.length) h += '<p class="hint" style="margin:0 0 2px">没有正期望的选项。最接近的是：</p>' + sumItem(items[0]);
     else h += '<p class="hint" style="margin:0 0 2px">现在填的都是校准用的。再填角球大小、角球让球等盘的赔率，这里就会排出期望。</p>';
     if (pos.some(function (x) { return x.st.ev > 0.08; })) h += '<p class="warn">期望超过 +8% 的，先核对盘口和赔率有没有填错。</p>';
+    var allN = items.length, saved = savedCount(kind);
+    if (allN) h += '<div class="row-btns save-row"><button class="btn' + (pos.length ? ' pri' : '') + '" data-a="save-pos"' + (pos.length ? '' : ' disabled') + '>存正期望（' + pos.length + '）</button>' +
+      '<button class="btn" data-a="save-all">全部存（' + allN + '）</button></div>' +
+      (saved ? '<p class="hint saved">这场已存 ' + saved + ' 注，比赛结束后到「记录」一键查结果。</p>' : '');
     h += '<p class="hint">期望 = 赢的机会 × 赔率 − 1（走水退回本金）。模型有误差，+2% 以下差不多等于没有优势。' +
       (calN ? '校准用的' + calN + '个选项不参与排序。' : '') +
       (staleN ? '有 ' + staleN + ' 个盘的赔率是进球或角球之前填的，没有算进来。' : '') +
@@ -450,6 +457,10 @@
     var lo = MK[r.m].k === 'ou' ? 0.5 : -15, hi = MK[r.m].k === 'ou' ? 40 : 15;
     r.l = Math.max(lo, Math.min(hi, q4((r.l === null ? MK[r.m].fb : r.l) + dir * 0.25)));
     r.auto = false;
+    // odds read online belong to the old line: take the bookmaker's odds for the new line when it quotes one, otherwise leave the
+    // side empty (it keeps following the bookmaker's lines until you type odds yourself)
+    var alt = r.alt && r.alt[String(r.l)];
+    if (r.os) r.os.forEach(function (x, i) { if (x === 'net') r.o[i] = alt && alt[i] ? alt[i] : ''; });
   }
   function onBoardClick(kind, e) {
     var host = $(kind + '-board'), t = closestAttr(e.target, 'data-a', host);
@@ -457,6 +468,9 @@
     var a = t.getAttribute('data-a'), rowEl = closestAttr(t, 'data-id', host);
     var r = rowEl ? findRow(kind, +rowEl.getAttribute('data-id')) : null, b = board();
     if (a === 'odd' && r) { kpOpen(kind, r.id, +t.getAttribute('data-s')); return; }
+    if (a === 'net') { netAction(kind); return; }
+    if (a === 'netset') { setTab('about'); setTimeout(function () { var el = $('net-key'); if (el) { try { el.scrollIntoView({ block: 'center' }); } catch (e) { } } }, 50); return; }
+    if (a === 'unlink') { b.api = null; NETMSG[kind] = ''; save(); renderBoard(kind); netAction(kind); return; }
     if ((a === 'dec' || a === 'inc') && r) stepLine(r, a === 'inc' ? 1 : -1);
     else if (a === 'del' && r) {
       if (KP.open && KP.mode === 'odds' && KP.kind === kind && KP.id === r.id) kpClose(true);
@@ -484,7 +498,7 @@
       }
       PEND = { a: '', kind: '', t: 0 };
       if (KP.open && KP.mode === 'odds' && KP.kind === kind) kpClose(true);
-      if (a === 'clr') b[kind].forEach(function (x) { x.o = x.o.map(function () { return ''; }); x.ts = 0; if (hasLine(x.m)) x.auto = true; });
+      if (a === 'clr') b[kind].forEach(function (x) { x.o = x.o.map(function () { return ''; }); x.os = x.o.map(function () { return ''; }); x.alt = null; x.book = ''; x.ts = 0; if (hasLine(x.m)) x.auto = true; });
       else b[kind] = tmpl(kind);
     } else if (a === 'fresh' && r) {
       r.sig = liveSig(); r.ts = Date.now();
@@ -594,6 +608,7 @@
     }
     var v = bufVal(KP.buf);
     r.o[KP.s] = oddsVal(v) !== null ? v.toFixed(2) : '';
+    if (r.os) r.os[KP.s] = '';
     r.ts = Date.now();
     if (KP.kind === 'live') r.sig = liveSig();
     if (hasLine(r.m)) r.auto = false;
@@ -649,6 +664,7 @@
     if (k === 'dec' || k === 'inc') { stepLine(r, k === 'inc' ? 1 : -1); boardChanged(KP.kind); kpRender(); return; }
     if (k === 'rec') {
       r.o[KP.s] = el.getAttribute('data-v'); r.ts = Date.now(); if (hasLine(r.m)) r.auto = false;
+      if (r.os) r.os[KP.s] = '';
       if (KP.kind === 'live') r.sig = liveSig();
       KP.fresh = true; KP.buf = ''; pushRecent(r.o[KP.s]);
       kpNext(); return;
@@ -867,6 +883,7 @@
     $('upd-btn').addEventListener('click', function () { updateData(false); });
     $('upd-clear').addEventListener('click', function () { S.extra = []; S.extraUntil = null; S.updatedAt = null; ST = Core.buildRatings(B, S.extra); save(); computePre(); renderAll(); });
     $('about-text').innerHTML = ABOUT_HTML;
+    renderNet();
   }
 
   /* ---------------- online update (works when the page is hosted on a normal website) ---------------- */
@@ -936,20 +953,671 @@
     });
   }
 
+  /* ---------------- small message toast + bottom sheet ---------------- */
+  var toastT = null;
+  function toast(msg) {
+    var el = $('msg-toast');
+    el.textContent = msg; el.hidden = false;
+    if (toastT) clearTimeout(toastT);
+    toastT = setTimeout(function () { el.hidden = true; }, 3500);
+  }
+  var SHEET = null;
+  function openSheet(title, html, onClick) {
+    if (KP.open) { if (KP.mode === 'int') { KP.open = false; kpHide(); } else kpClose(true); }
+    $('sheet-title').textContent = title; $('sheet-body').innerHTML = html; $('sheet').hidden = false; SHEET = onClick || null;
+    try { $('sheet-body').scrollTop = 0; } catch (e) { }
+  }
+  function closeSheet() { $('sheet').hidden = true; $('sheet-body').innerHTML = ''; SHEET = null; }
+  function r4(x) { return Math.round(x * 10000) / 10000; }
+  function shallow(o) { var c = {}; for (var k in o) c[k] = o[k]; return c; }
+
+  /* ---------------- online: API-Football (odds, live score, results) ---------------- */
+  var TZ = (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } })();
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dayKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function shiftDay(k, n) { var p = k.split('-'); return dayKey(new Date(+p[0], +p[1] - 1, +p[2] + n, 12)); }
+  function fmtKo(ms) { var d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function netKey() { return String((S.net && S.net.key) || '').trim(); }
+  // the key the user already pasted into 角球数据记录 / 角球六要素 (same website, same device)
+  if (!netKey()) ['corner-sb-net', 'corner-six-net'].some(function (k) {
+    try {
+      var o = JSON.parse(window.localStorage.getItem(k) || 'null');
+      if (o && o.key) { S.net.key = String(o.key).trim(); S.net.from = k === 'corner-sb-net' ? '角球数据记录' : '角球六要素'; return true; }
+    } catch (e) { }
+    return false;
+  });
+  function api(path) {
+    if (path.indexOf('/status') !== 0) {
+      var k = dayKey(new Date()), n = ((S.net.used || {})[k] || 0) + 1;
+      S.net.used = {}; S.net.used[k] = n; save();
+    }
+    return Net.apiGet(netKey(), path);
+  }
+  var NETC = {};
+  function apiCached(path) {
+    var c = NETC[path];
+    if (c && Date.now() - c.t < 600000) return Promise.resolve(c.v);
+    return api(path).then(function (v) { v = v || []; NETC[path] = { t: Date.now(), v: v }; return v; });
+  }
+  function ourTeams() {
+    if (S.setup.other) {
+      var oh = S.setup.oh || '', oa = S.setup.oa || '';
+      return { lid: null, h: oh ? Net.teamKeys(oh, null, Net.zhNames(oh)) : [], a: oa ? Net.teamKeys(oa, null, Net.zhNames(oa)) : [] };
+    }
+    var L = B.leagues[S.setup.li], th = L.teams[S.setup.hi], ta = L.teams[S.setup.ai], map = B.om_map[L.code];
+    return { lid: Net.LG_API[L.code] || null, h: Net.teamKeys(th.n, map, Net.zhNames(th.z)), a: Net.teamKeys(ta.n, map, Net.zhNames(ta.z)) };
+  }
+  // today, tomorrow and yesterday (the free plan's window); fixtures of the right league first, the whole day if that finds nothing
+  function findFixture() {
+    var T = ourTeams(), today = dayKey(new Date()), days = [today, shiftDay(today, 1), shiftDay(today, -1)], all = [], i = 0, wide = !T.lid;
+    if (!T.h.length || !T.a.length) return Promise.resolve({ r: [], sure: false });
+    function path(d) { return '/fixtures?date=' + d + (wide ? '' : '&league=' + T.lid + '&season=' + B.season) + '&timezone=' + encodeURIComponent(TZ); }
+    function step() {
+      if (i >= days.length) {
+        if (!wide && !all.length) { wide = true; i = 0; days = days.slice(0, 2); return step(); }
+        return { r: Net.rankFixtures(all, T.h, T.a, T.lid), sure: false };
+      }
+      var d = days[i++];
+      return apiCached(path(d)).then(function (list) {
+        var seen = {};
+        all.forEach(function (f) { seen[f.fixture.id] = 1; });
+        all = all.concat((list || []).filter(function (f) { return f && f.fixture && !seen[f.fixture.id]; }));
+        var r = Net.rankFixtures(all, T.h, T.a, T.lid);
+        return Net.isSure(r) ? { r: r, sure: true } : step();
+      });
+    }
+    return step();
+  }
+  var NETMSG = { pre: '', live: '' }, NETBUSY = false;
+  function linkTo(c) {
+    var f = c.f, b = board();
+    b.api = { id: f.fixture.id, sw: c.sw ? 1 : 0, h: f.teams.home.name, a: f.teams.away.name,
+              ko: f.fixture.timestamp ? f.fixture.timestamp * 1000 : null, lg: f.league ? f.league.name : '' };
+    save();
+    return b.api;
+  }
+  function openPicker(cands, kind) {
+    var h = '';
+    if (!cands.length) h += '<p class="hint">' + (S.setup.other && !(S.setup.oh && S.setup.oa) ? '其他联赛要先在「比赛」里填两队的名字。' :
+      '今天、明天、昨天的比赛里没找到这两队（免费方案只能查这三天）。赔率可以自己填。') + '</p>';
+    cands.forEach(function (c, i) {
+      var f = c.f;
+      h += '<button class="pick" data-i="' + i + '"><b>' + esc(f.teams.home.name) + ' vs ' + esc(f.teams.away.name) + '</b><small>' +
+        esc(f.league ? f.league.name : '') + (f.fixture.timestamp ? ' · ' + fmtKo(f.fixture.timestamp * 1000) : '') + (c.sw ? ' · 主客跟你选的相反' : '') + '</small></button>';
+    });
+    if (cands.length) h += '<p class="hint">点对的那一场，之后这场就不用再找。都不对就关掉，赔率自己填。</p>';
+    openSheet('是哪一场？', h, function (e) {
+      var t = closestAttr(e.target, 'data-i', $('sheet-body'));
+      if (!t) return;
+      var c = cands[+t.getAttribute('data-i')];
+      closeSheet(); linkTo(c); netAction(kind);
+    });
+  }
+  function netBar(kind) {
+    if (!netKey()) return '<div class="netbar"><button class="btn" data-a="netset">联网自动填赔率（先填免费 key）</button></div>';
+    var lk = board().api, h = '<div class="netbar"><button class="btn pri" data-a="net"' + (NETBUSY ? ' disabled' : '') + '>' +
+      (NETBUSY ? '联网中…' : (kind === 'pre' ? '联网读取赔率' : '联网同步比分和赔率')) + '</button>';
+    if (lk) h += '<span class="nt">' + esc(lk.h) + ' vs ' + esc(lk.a) + (lk.ko ? ' · ' + fmtKo(lk.ko) : '') + ' <button class="lnk" data-a="unlink">不是这场</button></span>';
+    h += '</div>';
+    if (NETMSG[kind]) h += '<p class="hint netmsg">' + esc(NETMSG[kind]) + '</p>';
+    return h;
+  }
+  function netAction(kind) {
+    if (!netKey()) { setTab('about'); return; }
+    if (NETBUSY) return;
+    if (KP.open) { if (KP.mode === 'int') { KP.open = false; kpHide(); } else kpClose(true); }
+    NETBUSY = true; NETMSG[kind] = '正在联网…'; renderBoard(kind);
+    var b = board();
+    var p = b.api && b.api.id ? Promise.resolve(b.api) : findFixture().then(function (x) {
+      if (x.sure) return linkTo(x.r[0]);
+      openPicker(x.r.slice(0, 8), kind);
+      NETMSG[kind] = x.r.length ? '请在弹出的列表里点对的那一场。' : '联网没找到这场比赛。';
+      return null;
+    });
+    p.then(function (lk) { return lk ? (kind === 'pre' ? readPre(lk) : syncLive(lk)) : null; })
+      .then(function (msg) { if (msg) NETMSG[kind] = msg; }, function (e) { NETMSG[kind] = '联网失败：' + e.message; })
+      .then(function () { NETBUSY = false; if (S.tab === kind) { if (kind === 'live') renderLive(); else renderBoard(kind); } });
+  }
+  function summarize(mk) {
+    var books = {}, parts = [];
+    Object.keys(MK).forEach(function (m) {
+      var x = mk[m];
+      if (!x) return;
+      books[x.book] = 1;
+      parts.push(MK[m].n.replace(' 大小', '') + (hasLine(m) ? ' ' + (MK[m].k === 'ah' ? '主 ' + hcAB(x.l) : totAB(x.l)) : ''));
+    });
+    return parts.join('、') + '（' + Object.keys(books).join(' / ') + '）';
+  }
+  // fill the board: rows of the same market that hold no odds the user typed get the online line and odds
+  function applyMarkets(kind, mk) {
+    var rows = board()[kind], n = 0, ctx = CTX[kind];
+    Object.keys(MK).forEach(function (m) {
+      var x = mk[m];
+      if (!x || (ctx && !htOK(m, ctx))) return;
+      var cand = null, mine = false;
+      rows.forEach(function (r) {
+        if (r.m !== m) return;
+        var typed = r.o.some(function (v, i) { return v && !(r.os && r.os[i] === 'net'); });
+        if (typed) mine = true; else if (!cand) cand = r;
+      });
+      if (!cand) { if (mine) return; cand = newRow(m); rows.push(cand); }
+      if (hasLine(m)) { cand.l = q4(x.l); cand.auto = false; }
+      cand.o = x.o.map(function (v) { return (+v).toFixed(2); });
+      cand.os = cand.o.map(function () { return 'net'; });
+      cand.book = x.book; cand.ts = Date.now();
+      cand.alt = null;
+      if (hasLine(m) && x.alts) {
+        cand.alt = {};
+        x.alts.forEach(function (a) { cand.alt[String(q4(a.l))] = a.o.map(function (v) { return (+v).toFixed(2); }); });
+      }
+      if (kind === 'live') cand.sig = liveSig();
+      n++;
+    });
+    if (n) boardChanged(kind);
+    return n;
+  }
+  // bet names the board could not use (kept for the export, so the name list can be extended later)
+  function noteUnused(bets) {
+    var seen = {};
+    (S.net.unk || []).forEach(function (x) { seen[x] = 1; });
+    (bets || []).forEach(function (b) { if (b && b.name && !seen[b.name] && !Net.parseBet(b, false)) seen[b.name] = 1; });
+    S.net.unk = Object.keys(seen).slice(-80);
+  }
+  function readPre(lk) {
+    return api('/odds?fixture=' + lk.id).then(function (resp) {
+      var bms = ((resp || [])[0] || {}).bookmakers || [];
+      bms.forEach(function (bm) { noteUnused(bm && bm.bets); });
+      var mk = Net.pickPre(bms, !!lk.sw), all = Object.keys(mk).length;
+      if (!all) return '联网还没有这场的赛前盘口（一般开赛前几天才有，有些联赛没有）。';
+      var n = applyMarkets('pre', mk);
+      return '已填入：' + summarize(mk) + (n < all ? '。你自己填过的盘没有改' : '') + '。跟你的平台不一样就直接改。';
+    });
+  }
+  function syncLive(lk) {
+    return api('/fixtures?id=' + lk.id).then(function (resp) {
+      var f = (resp || [])[0];
+      if (!f) throw new Error('找不到这场比赛的资料');
+      var s = Net.fixState(f, !!lk.sw);
+      if (!s.c && (s.live || s.done)) {
+        return api('/fixtures/statistics?fixture=' + lk.id).then(function (st) {
+          var g = shallow(f); g.statistics = st; s.c = Net.fixState(g, !!lk.sw).c; return s;
+        }, function () { return s; });
+      }
+      return s;
+    }).then(function (s) {
+      var msg = applyState(s);
+      if (s.done) return (msg ? msg + ' ' : '') + '这场已经结束。';
+      if (!s.live) return '这场还没开始' + (s.ko ? '（' + fmtKo(s.ko) + ' 开球）' : '') + '，赛前赔率请在「赛前」读取。';
+      return api('/odds/live?fixture=' + lk.id).then(function (r2) {
+        var lo = ((r2 || [])[0] || {}).odds;
+        noteUnused(lo);
+        var mk = Net.pickLive(lo, !!lk.sw);
+        applyMarkets('live', mk);
+        return msg + (Object.keys(mk).length ? ' 滚球盘口：' + summarize(mk) + '。' : ' 联网现在没有这场的滚球盘口。');
+      });
+    });
+  }
+  // counts only go up (the feed can lag a few seconds behind what you saw); the clock follows the feed
+  function applyState(s) {
+    if (!s.live && !s.done) return '';
+    var L = S.live, ch = [];
+    function mx(k, v, nm) { if (typeof v === 'number' && v > L[k]) { ch.push(nm + ' ' + L[k] + '→' + v); L[k] = v; } }
+    mx('gh', s.gNow[0], '主队进球'); mx('ga', s.gNow[1], '客队进球');
+    if (s.c) { mx('ch', s.c[0], '主队角球'); mx('ca', s.c[1], '客队角球'); }
+    mx('rh', s.red[0], '主队红牌'); mx('ra', s.red[1], '客队红牌');
+    if (s.st === 'HT') {
+      if (!L.ht) { L.ht = true; L.per = 1; L.running = false; L.baseMin = 45; board().htSnap = { c: [L.ch, L.ca], g: [L.gh, L.ga] }; }
+    } else if (s.st === '1H' || s.st === '2H') {
+      L.ht = false; L.per = s.st === '1H' ? 1 : 2; L.baseMin = Math.min(130, s.el + (s.ex || 0)); L.baseTs = Date.now(); L.running = true;
+    }
+    save();
+    return '比分 ' + L.gh + ':' + L.ga + '，角球 ' + L.ch + ':' + L.ca + (s.live && s.el ? '，第 ' + (s.el + (s.ex || 0)) + ' 分钟' : '') +
+      (ch.length ? '（补上：' + ch.join('，') + '）' : '') + '。';
+  }
+
+  /* ---------------- records: bets saved for checking after the match ---------------- */
+  var REC_KEY = 'corner_goal_ai_rec_v1', REC = { recs: [], matches: {} };
+  try { var rr0 = JSON.parse(window.localStorage.getItem(REC_KEY) || 'null'); if (rr0 && rr0.recs && rr0.matches) REC = rr0; } catch (e) { }
+  function recSave() {
+    try { window.localStorage.setItem(REC_KEY, JSON.stringify(REC)); return true; }
+    catch (e) { toast('本机存储空间满了：请先导出，再删除一些旧比赛。'); return false; }
+  }
+  function lgName(code) {
+    if (code === 'other') return '其他联赛';
+    for (var i = 0; i < B.leagues.length; i++) if (B.leagues[i].code === code) return B.leagues[i].zh;
+    return code;
+  }
+  // the record entry for the match on screen (a new one once the old one has a result or is days old)
+  function curMatch() {
+    var b = board(), now = Date.now(), m = b.mid && REC.matches[b.mid];
+    if (m && (m.fin || (m.ko ? now > m.ko + 3 * 86400000 : now - (m.last || m.at || 0) > 4 * 86400000))) m = null;
+    if (!m) {
+      var names = teamNames(), id = 'm' + now.toString(36) + Math.floor(Math.random() * 1296).toString(36);
+      m = { id: id, at: now, lg: S.setup.other ? 'other' : B.leagues[S.setup.li].code, h: names[0], a: names[1], d: dayKey(new Date()), res: {}, src: {} };
+      if (S.setup.other) { m.hn = S.setup.oh || ''; m.an = S.setup.oa || ''; }
+      else { var L = B.leagues[S.setup.li]; m.hn = L.teams[S.setup.hi].n; m.an = L.teams[S.setup.ai].n; }
+      REC.matches[id] = m; b.mid = id; save();
+    }
+    if (b.api) { m.api = { id: b.api.id, sw: b.api.sw }; if (b.api.ko) { m.ko = b.api.ko; m.d = dayKey(new Date(b.api.ko)); } }
+    m.last = now;
+    return m;
+  }
+  function savedCount() {
+    var b = board(), m = b.mid && REC.matches[b.mid];
+    if (!m || m.fin) return 0;
+    return REC.recs.filter(function (r) { return r.mid === m.id; }).length;
+  }
+  function saveRecs(kind, onlyPos) {
+    var ctx = CTX[kind];
+    if (!ctx) { toast('先选好比赛'); return; }
+    var m = curMatch(), now = Date.now(), L = S.live, sig = liveSig(), idx = {}, cnt = 0, seq = 0;
+    REC.recs.forEach(function (r, i) { if (r.mid === m.id && !r.res) idx[r.k] = i; });
+    board()[kind].forEach(function (r) {
+      if ((kind === 'pre' && CAL.ids[r.id]) || isStale(kind, r) || !htOK(r.m, ctx)) return;
+      var ev = rowEval(r, ctx);
+      if (!ev) return;
+      ev.forEach(function (st, s) {
+        if (st.ev === null || (onlyPos && !(st.ev > 0))) return;
+        var rec = { id: 'r' + now.toString(36) + (seq++).toString(36) + Math.floor(Math.random() * 1296).toString(36), mid: m.id, t: now, ph: kind,
+                    m: r.m, l: r.l, s: s, o: st.odds, p: [r4(st.win), r4(st.push), r4(st.lose)], fair: isFinite(st.fair) ? Math.round(st.fair * 100) / 100 : null,
+                    ev: r4(st.ev), src: r.os && r.os[s] === 'net' ? r.book : '' };
+        if (kind === 'live') {
+          rec.st = { min: liveMinute(), per: L.ht ? 'ht' : L.per, g: [L.gh, L.ga], c: [L.ch, L.ca], r: [L.rh, L.ra] };
+          if (MK[r.m].k === 'ah' && fromNow(ctx)) rec.b = MK[r.m].g === 'c' ? [L.ch, L.ca] : [L.gh, L.ga];
+        }
+        rec.k = [kind, r.m, r.l, s, kind === 'live' ? sig : ''].join('|');
+        if (idx[rec.k] !== undefined) { rec.id = REC.recs[idx[rec.k]].id; REC.recs[idx[rec.k]] = rec; }
+        else { idx[rec.k] = REC.recs.length; REC.recs.push(rec); }
+        cnt++;
+      });
+    });
+    if (recSave()) toast(cnt ? '已存 ' + cnt + ' 注到「记录」，比赛结束后去那里一键查结果' : '没有可以存的选项');
+    renderBoard(kind);
+  }
+
+  /* ---------------- results: public data first (no key), then API-Football; settle every bet ---------------- */
+  var LOOK = { busy: false, msg: '' };
+  function recsOf(mid) { return REC.recs.filter(function (r) { return r.mid === mid; }); }
+  function needed(m) {
+    var need = {};
+    REC.recs.forEach(function (r) { if (r.mid === m.id && !r.res) { var v = Net.need(r.m); if (v) need[v] = 1; } });
+    return Object.keys(need).filter(function (k) { return !(m.res && m.res[k]); });
+  }
+  function pendingMatches() {
+    var by = {};
+    REC.recs.forEach(function (r) { if (!r.res) by[r.mid] = 1; });
+    return Object.keys(by).map(function (id) { return REC.matches[id]; }).filter(function (m) { return !!m; });
+  }
+  function setRes(m, key, val, src) {
+    if (!val || val[0] === null || val[1] === null || val[0] === undefined || val[1] === undefined) return false;
+    if (!m.res) m.res = {};
+    if (!m.src) m.src = {};
+    if (m.res[key]) return false;
+    m.res[key] = [val[0], val[1]]; m.src[key] = src; m.fin = true;
+    return true;
+  }
+  function settleAll() {
+    var n = 0;
+    REC.recs.forEach(function (r) {
+      if (r.res) return;
+      var m = REC.matches[r.mid], x = m && m.res ? Net.settle(r, m.res) : null;
+      if (x) { r.res = x; n++; }
+    });
+    return n;
+  }
+  function omFetch(code) {
+    var L = null;
+    B.leagues.forEach(function (x) { if (x.code === code) L = x; });
+    if (!L || !window.fetch) return Promise.resolve(null);
+    var sk = String(B.season).slice(2) + String(B.season + 1).slice(2);
+    var bases = ['https://raw.githubusercontent.com/oladeeayo/open-matchday/master/data/', 'https://cdn.jsdelivr.net/gh/oladeeayo/open-matchday@master/data/'];
+    function tryK(k) {
+      return fetch(bases[k] + L.om + '/results_' + sk + '.csv', { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .catch(function (e) { if (k + 1 < bases.length) return tryK(k + 1); throw e; });
+    }
+    return tryK(0).then(function (txt) { return Net.omResults(txt, B.om_map[code] || {}); }, function () { return null; });
+  }
+  function soft(p) { return p.then(null, function (e) { LOOK.err = e.message; return null; }); }
+  function apiResults(list) {
+    var got = 0, withId = list.filter(function (m) { return m.api && m.api.id; });
+    var today = dayKey(new Date()), lo = shiftDay(today, -1), hi = shiftDay(today, 1);
+    var link = list.filter(function (m) { return !(m.api && m.api.id) && m.lg !== 'other' && m.hn && m.an && Net.LG_API[m.lg]; });
+    var p = Promise.resolve();
+    link.forEach(function (m) {
+      p = p.then(function () {
+        var lid = Net.LG_API[m.lg], map = B.om_map[m.lg], all = [], q = Promise.resolve();
+        [m.d, shiftDay(m.d, 1)].filter(function (d) { return d >= lo && d <= hi; }).forEach(function (d) {
+          q = q.then(function () { return soft(apiCached('/fixtures?date=' + d + '&league=' + lid + '&season=' + B.season + '&timezone=' + encodeURIComponent(TZ))).then(function (l) { all = all.concat(l || []); }); });
+        });
+        return q.then(function () {
+          var r = Net.rankFixtures(all, Net.teamKeys(m.hn, map), Net.teamKeys(m.an, map), lid);
+          if (Net.isSure(r)) { m.api = { id: r[0].f.fixture.id, sw: 0 }; withId.push(m); }
+        });
+      });
+    });
+    return p.then(function () {
+      if (!withId.length) return 0;
+      var ids = withId.map(function (m) { return m.api.id; }), fx = {}, chunks = [];
+      for (var i = 0; i < ids.length; i += 20) chunks.push(ids.slice(i, i + 20));
+      return Promise.all(chunks.map(function (c) {
+        return soft(api('/fixtures?ids=' + c.join('-'))).then(function (r) { (r || []).forEach(function (f) { if (f && f.fixture) fx[f.fixture.id] = f; }); });
+      })).then(function () {
+        var q2 = Promise.resolve();
+        withId.forEach(function (m) {
+          var f = fx[m.api.id];
+          if (!f) return;
+          var s = Net.fixState(f, !!m.api.sw);
+          if (!s.done) return;
+          var any = setRes(m, 'g', s.g, '联网');
+          any = setRes(m, 'g1', s.g1, '联网') || any;
+          any = setRes(m, 'c', s.c, '联网') || any;
+          if (any) got++;
+          var need = needed(m), ids2 = m.api.sw ? [f.teams.away.id, f.teams.home.id] : [f.teams.home.id, f.teams.away.id];
+          if (need.indexOf('c') >= 0) q2 = q2.then(function () {
+            return soft(api('/fixtures/statistics?fixture=' + m.api.id)).then(function (st) { if (st) { var g = shallow(f); g.statistics = st; setRes(m, 'c', Net.fixState(g, !!m.api.sw).c, '联网'); } });
+          });
+          if (need.indexOf('c1') >= 0) q2 = q2.then(function () {
+            return soft(api('/fixtures/statistics?fixture=' + m.api.id + '&half=true')).then(function (st) { if (st) setRes(m, 'c1', Net.firstHalfCorners(st, ids2), '联网'); });
+          });
+        });
+        return q2.then(function () { return got; });
+      });
+    });
+  }
+  function lookupResults() {
+    if (LOOK.busy) return;
+    var first = settleAll(), pend = pendingMatches().filter(function (m) { return needed(m).length; });
+    if (!pend.length) { recSave(); LOOK.msg = first ? '已结算 ' + first + ' 注。' : '没有要查结果的比赛。'; renderRec(); return; }
+    LOOK.busy = true; LOOK.err = ''; LOOK.msg = '正在查找 ' + pend.length + ' 场比赛的结果…'; renderRec();
+    var codes = {}, got = 0;
+    pend.forEach(function (m) { if (m.lg !== 'other') codes[m.lg] = 1; });
+    Promise.all(Object.keys(codes).map(function (c) { return omFetch(c).then(function (list) { return { c: c, list: list }; }); })).then(function (res) {
+      var lists = {};
+      res.forEach(function (x) { lists[x.c] = x.list; });
+      pend.forEach(function (m) {
+        var list = lists[m.lg], row = list && m.hn ? Net.omFind(list, m.hn, m.an, m.d, 10) : null;
+        if (!row) return;
+        var any = false;
+        ['g', 'g1', 'c', 'c1'].forEach(function (k) { if (setRes(m, k, row[k], '公开数据')) any = true; });
+        if (any) got++;
+      });
+      var left = pend.filter(function (m) { return needed(m).length; });
+      return netKey() && left.length ? apiResults(left).then(function (n) { got += n; }) : null;
+    }).then(function () {
+      var n = settleAll() + first;
+      recSave();
+      var left = pendingMatches().filter(function (m) { return needed(m).length; }).length;
+      LOOK.msg = '查到 ' + got + ' 场的结果，新结算 ' + n + ' 注。' + (left ? '还有 ' + left + ' 场缺结果：公开数据一般隔天才更新' +
+        (netKey() ? '' : '（填了联网 key 可以更快查到）') + '，也可以点那场的“填结果”自己补。' : '') + (LOOK.err ? '（联网：' + LOOK.err + '）' : '');
+    }, function (e) { LOOK.msg = '查找失败：' + e.message; }).then(function () { LOOK.busy = false; if (S.tab === 'rec') renderRec(); });
+  }
+
+  /* ---------------- records tab: statistics, list, manual results ---------------- */
+  var RF = { ph: 'all', pos: 0, ed: null, del: null };
+  var GROUP = { ftc_ou: '全场角球大小', htc_ou: '半场角球大小', ftc_ah: '全场角球让球', htc_ah: '半场角球让球', hc_ou: '球队角球大小', ac_ou: '球队角球大小',
+                ftc_x: '角球独赢', g_ou: '进球大小', gh_ou: '进球大小', g_ah: '进球让球', gh_ah: '进球让球', g_1x2: '胜平负', gh_1x2: '胜平负', btts: '双方进球' };
+  var RES_NAME = { g: '全场比分', g1: '半场比分', c: '全场角球', c1: '上半场角球' };
+  function agg(list) {
+    var a = { n: 0, w: 0, hw: 0, p: 0, hl: 0, l: 0, pl: 0, ss: 0, ev: 0, wu: 0, lu: 0, mw: 0, ml: 0 };
+    list.forEach(function (r) {
+      var u = r.res.u;
+      a.n++; a.pl += r.res.pl; a.ss += r.res.pl * r.res.pl; a.ev += r.ev;
+      if (u >= 1) a.w++; else if (u > 0) a.hw++; else if (u === 0) a.p++; else if (u > -1) a.hl++; else a.l++;
+      a.wu += Math.max(0, u); a.lu += Math.max(0, -u); a.mw += r.p[0]; a.ml += r.p[2];
+    });
+    a.hit = a.wu + a.lu > 0 ? a.wu / (a.wu + a.lu) : null;
+    a.mhit = a.mw + a.ml > 0 ? a.mw / (a.mw + a.ml) : null;
+    a.roi = a.n ? a.pl / a.n : null; a.eroi = a.n ? a.ev / a.n : null;
+    a.ci = a.n > 1 ? 1.96 * Math.sqrt(Math.max(0, (a.ss - a.n * a.roi * a.roi) / (a.n - 1)) / a.n) : null;
+    return a;
+  }
+  function pctN(x) { return x === null || x === undefined ? '—' : (x * 100).toFixed(1) + '%'; }
+  function units(x) { return (x > 0 ? '+' : (x < 0 ? '−' : '')) + Math.abs(x).toFixed(2); }
+  function recLabel(r) {
+    var t = fullLabel({ m: r.m, l: r.l }, r.s, null);
+    if (r.b) t += '（' + r.b[0] + ':' + r.b[1] + ' 起算）';
+    return t;
+  }
+  function outcome(r) {
+    if (!r.res) return '<span class="oc pend">待定</span>';
+    var u = r.res.u, t = u >= 1 ? '赢' : u > 0 ? '赢半' : u === 0 ? '走水' : u > -1 ? '输半' : '输';
+    return '<span class="oc ' + (u > 0 ? 'win' : u < 0 ? 'lose' : 'push') + '">' + t + ' ' + units(r.res.pl) + '</span>';
+  }
+  function statTable(title, rows) {
+    var h = '<div class="sec">' + title + '</div><div class="tw"><table class="mk"><thead><tr><th></th><th>注数</th><th>命中率</th><th>回报率</th><th>模型预计</th></tr></thead><tbody>';
+    rows.forEach(function (x) {
+      h += '<tr><td>' + esc(x[0]) + '</td><td>' + x[1].n + '</td><td>' + pctN(x[1].hit) + '</td><td class="' + (x[1].roi > 0 ? 'pos' : x[1].roi < 0 ? 'neg' : '') + '">' +
+        (x[1].roi === null ? '—' : sgnPct(x[1].roi)) + '</td><td>' + (x[1].eroi === null ? '—' : sgnPct(x[1].eroi)) + '</td></tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+  function renderRec() {
+    var nAll = REC.recs.length, nPend = REC.recs.filter(function (r) { return !r.res; }).length;
+    var mids = {};
+    REC.recs.forEach(function (r) { mids[r.mid] = 1; });
+    var h = '<h2>记录 <span class="sub">· ' + nAll + ' 注、' + Object.keys(mids).length + ' 场</span></h2>' +
+      '<button class="btn pri wide" data-r="look"' + (LOOK.busy || !nPend ? ' disabled' : '') + '>' + (LOOK.busy ? '查找中…' : '一键查找比赛结果' + (nPend ? '（待结算 ' + nPend + ' 注）' : '')) + '</button>' +
+      '<div class="row-btns"><button class="btn" data-r="export"' + (nAll ? '' : ' disabled') + '>导出给 Claude</button><button class="btn ghost" data-r="import">导入</button></div>' +
+      (LOOK.msg ? '<p class="hint">' + esc(LOOK.msg) + '</p>' : '') +
+      (nAll ? '' : '<p class="hint">在「赛前」或「滚球」的期望收益下面点“存正期望”或“全部存”。比赛结束后回来点“一键查找比赛结果”，会自动判断赢输、算命中率和盈亏。</p>') +
+      (netKey() ? '' : '<p class="hint">没填联网 key 也能查：结果从免费公开数据里找（一般隔天更新）。<button class="lnk" data-r="setkey">填 key</button></p>');
+    $('rec-act').innerHTML = h;
+    // statistics
+    var list = REC.recs.filter(function (r) { return (RF.ph === 'all' || r.ph === RF.ph) && (!RF.pos || r.ev > 0); }), done = list.filter(function (r) { return !!r.res; });
+    var s = '<h2>统计 <span class="sub">· 每注 1 份</span></h2><div class="seg">' +
+      [['all', '全部'], ['pre', '赛前'], ['live', '滚球']].map(function (x) { return '<button class="chipb" data-r="ph" data-v="' + x[0] + '" aria-pressed="' + (RF.ph === x[0]) + '">' + x[1] + '</button>'; }).join('') +
+      '<button class="chipb" data-r="pos" aria-pressed="' + (!!RF.pos) + '">只看存的时候正期望</button></div>';
+    if (!done.length) s += '<p class="hint">' + (list.length ? '这些注还没结算。' : '还没有记录。') + '</p>';
+    else {
+      var a = agg(done);
+      s += '<div class="kpis">' +
+        '<div class="kpi"><div class="k">命中率</div><div class="v sm num">' + pctN(a.hit) + '</div><div class="s">模型预计 ' + pctN(a.mhit) + '</div></div>' +
+        '<div class="kpi"><div class="k">盈亏</div><div class="v sm num ' + (a.pl > 0 ? 'pos' : a.pl < 0 ? 'neg' : '') + '">' + units(a.pl) + '</div><div class="s">' + a.n + ' 注，单位：份</div></div>' +
+        '<div class="kpi"><div class="k">回报率</div><div class="v sm num ' + (a.roi > 0 ? 'pos' : a.roi < 0 ? 'neg' : '') + '">' + sgnPct(a.roi) + '</div><div class="s">模型预计 ' + sgnPct(a.eroi) + '</div></div></div>' +
+        '<p class="hint">赢 ' + a.w + ' · 赢半 ' + a.hw + ' · 走水 ' + a.p + ' · 输半 ' + a.hl + ' · 输 ' + a.l + '。' +
+        (a.ci !== null ? '回报率的误差范围大约 ±' + (a.ci * 100).toFixed(0) + '%' + (a.ci > Math.abs(a.roi) ? '，比回报率本身还大，现在还看不出真假' : '') + '。' : '') + '</p>';
+      var by = {}, order = [];
+      done.forEach(function (r) { var g = GROUP[r.m] || r.m; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r); });
+      s += statTable('按玩法', order.map(function (g) { return [g, agg(by[g])]; }));
+      var bk = [['负的', function (e) { return e < 0; }], ['0~2%', function (e) { return e >= 0 && e < 0.02; }],
+                ['2~5%', function (e) { return e >= 0.02 && e < 0.05; }], ['5% 以上', function (e) { return e >= 0.05; }]];
+      var rowsB = bk.map(function (x) { return [x[0], agg(done.filter(function (r) { return x[1](r.ev); }))]; }).filter(function (x) { return x[1].n; });
+      if (rowsB.length > 1) s += statTable('按存的时候的期望', rowsB);
+      if (RF.ph === 'all') {
+        var rowsP = [['赛前', agg(done.filter(function (r) { return r.ph === 'pre'; }))], ['滚球', agg(done.filter(function (r) { return r.ph === 'live'; }))]].filter(function (x) { return x[1].n; });
+        if (rowsP.length > 1) s += statTable('赛前 / 滚球', rowsP);
+      }
+    }
+    $('rec-stats').innerHTML = s;
+    // matches, newest first
+    var ms = Object.keys(mids).map(function (id) { return REC.matches[id]; }).filter(function (m) { return !!m; });
+    ms.sort(function (x, y) { return (y.ko || y.last || y.at || 0) - (x.ko || x.last || x.at || 0); });
+    var l = '<h2>比赛</h2>';
+    if (!ms.length) l += '<p class="hint">还没有。</p>';
+    ms.forEach(function (m) {
+      var rs = recsOf(m.id), pend = rs.filter(function (r) { return !r.res; }).length, sum = 0;
+      rs.forEach(function (r) { if (r.res) sum += r.res.pl; });
+      l += '<div class="mc" data-mid="' + m.id + '"><div class="mc-h"><b>' + esc(m.h) + ' vs ' + esc(m.a) + '</b><span class="sub">' + esc(lgName(m.lg)) + ' · ' +
+        (m.ko ? fmtKo(m.ko) : m.d.slice(5).replace('-', '/')) + '</span>' + (pend ? '<span class="tag">待结算 ' + pend + '</span>' : '<span class="tag ' + (sum > 0 ? 'pos' : sum < 0 ? 'neg' : '') + '">' + units(sum) + ' 份</span>') + '</div>';
+      var known = ['g', 'g1', 'c', 'c1'].filter(function (k) { return m.res && m.res[k]; });
+      // where each number came from: one note when they all share a source, otherwise one per number
+      var srcs = {};
+      known.forEach(function (k) { srcs[(m.src && m.src[k]) || ''] = 1; });
+      var oneSrc = Object.keys(srcs).length === 1;
+      l += known.length ? '<div class="mc-r">' + known.map(function (k) {
+        return RES_NAME[k] + ' ' + m.res[k][0] + ':' + m.res[k][1] + (!oneSrc && m.src && m.src[k] ? ' <small>（' + esc(m.src[k]) + '）</small>' : '');
+      }).join(' · ') + (oneSrc && m.src && m.src[known[0]] ? ' <small>（' + esc(m.src[known[0]]) + '）</small>' : '') + '</div>' : '<div class="mc-r miss">还没有结果</div>';
+      rs.slice().sort(function (x, y) { return x.t - y.t; }).forEach(function (r) {
+        l += '<div class="rr"><span class="t">' + esc(recLabel(r)) + ' <span class="o">@' + (+r.o).toFixed(2) + '</span><small>' + (r.ph === 'live' ? '滚球' + (r.st ? ' ' + r.st.min + '′ ' + r.st.g[0] + ':' + r.st.g[1] : '') : '赛前') +
+          ' · 期望 ' + sgnPct(r.ev) + ' · 赢 ' + pctN(r.p[0]) + (r.src ? ' · ' + esc(r.src) : '') + '</small></span>' + outcome(r) + '</div>';
+      });
+      if (RF.ed && RF.ed.mid === m.id) l += editorHTML(m);
+      l += '<div class="mc-b"><button class="lnk" data-r="ed">' + (known.length ? '改结果' : '填结果') + '</button>' +
+        '<button class="lnk" data-r="del">' + (RF.del === m.id ? '再点一次：删除这场' : '删除这场') + '</button></div></div>';
+    });
+    $('rec-list').innerHTML = l;
+  }
+  // manual results: steppers for every result the bets of this match use
+  function editorHTML(m) {
+    var E = RF.ed, h = '<div class="ed">';
+    E.keys.forEach(function (k) {
+      h += '<div class="ed-r"><span class="tl">' + RES_NAME[k] + '</span>' + [0, 1].map(function (i) {
+        return '<span class="stp"><button data-r="edv" data-k="' + k + '" data-i="' + i + '" data-d="-1">−</button><span class="lv">' + E.v[k][i] + '</span><button data-r="edv" data-k="' + k + '" data-i="' + i + '" data-d="1">+</button></span>';
+      }).join('<span class="sep">:</span>') + '</div>';
+    });
+    return h + '<div class="row-btns"><button class="btn pri" data-r="edsave">保存结果</button><button class="btn ghost" data-r="edx">取消</button></div></div>';
+  }
+  function openEditor(m) {
+    var keys = {}, b = board(), v = {}, mine = b.mid === m.id;
+    recsOf(m.id).forEach(function (r) { var k = Net.need(r.m); if (k) keys[k] = 1; });
+    var ks = ['g', 'g1', 'c', 'c1'].filter(function (k) { return keys[k]; });
+    ks.forEach(function (k) {
+      if (m.res && m.res[k]) v[k] = m.res[k].slice();
+      else if (mine && (k === 'c' || k === 'g')) v[k] = k === 'c' ? [S.live.ch, S.live.ca] : [S.live.gh, S.live.ga];
+      else if (mine && b.htSnap) v[k] = (k === 'c1' ? b.htSnap.c : b.htSnap.g).slice();
+      else v[k] = [0, 0];
+    });
+    RF.ed = { mid: m.id, keys: ks, v: v };
+  }
+  function onRecClick(e) {
+    var t = closestAttr(e.target, 'data-r', $('v-rec'));
+    if (!t || t.disabled) return;
+    var a = t.getAttribute('data-r'), card = closestAttr(t, 'data-mid', $('v-rec')), m = card ? REC.matches[card.getAttribute('data-mid')] : null;
+    if (a === 'look') lookupResults();
+    else if (a === 'export') openExport();
+    else if (a === 'import') openImport();
+    else if (a === 'setkey') setTab('about');
+    else if (a === 'ph') { RF.ph = t.getAttribute('data-v'); renderRec(); }
+    else if (a === 'pos') { RF.pos = RF.pos ? 0 : 1; renderRec(); }
+    else if (a === 'ed' && m) { if (RF.ed && RF.ed.mid === m.id) RF.ed = null; else openEditor(m); renderRec(); }
+    else if (a === 'edx') { RF.ed = null; renderRec(); }
+    else if (a === 'edv' && RF.ed) {
+      var k = t.getAttribute('data-k'), i = +t.getAttribute('data-i');
+      RF.ed.v[k][i] = Math.max(0, Math.min(k.charAt(0) === 'c' ? 40 : 15, RF.ed.v[k][i] + (+t.getAttribute('data-d'))));
+      renderRec();
+    } else if (a === 'edsave' && RF.ed && m) {
+      if (!m.res) m.res = {};
+      if (!m.src) m.src = {};
+      RF.ed.keys.forEach(function (k) { m.res[k] = RF.ed.v[k].slice(); m.src[k] = '手动'; });
+      m.fin = true;
+      recsOf(m.id).forEach(function (r) { r.res = null; });   // settle again with the corrected numbers
+      var n = settleAll();
+      RF.ed = null; recSave(); toast('已结算 ' + n + ' 注'); renderRec();
+    } else if (a === 'del' && m) {
+      if (RF.del !== m.id) { RF.del = m.id; renderRec(); setTimeout(function () { if (RF.del === m.id) { RF.del = null; if (S.tab === 'rec') renderRec(); } }, 4000); return; }
+      RF.del = null;
+      REC.recs = REC.recs.filter(function (r) { return r.mid !== m.id; });
+      delete REC.matches[m.id];
+      recSave(); renderRec();
+    }
+  }
+
+  /* ---------------- export / import ---------------- */
+  var README = '角球进球预测的记录导出档（fmt=1）。matches：每场比赛 id、lg 联赛代码（other=其他联赛）、h/a 主客队、hn/an 英文队名、d 日期、ko 开球时间（毫秒）、api 联网比赛 id（sw=1 主客跟联网相反）、' +
+    'res 结果 {g 全场比分[主,客]、g1 半场比分、c 全场角球、c1 上半场角球}、src 结果来源。recs：每一注 id、mid 比赛 id、t 存的时间（毫秒）、ph（pre 赛前 / live 滚球）、' +
+    'm 玩法（ftc_ou 全场角球大小、htc_ou 半场角球大小、ftc_ah 全场角球让球、htc_ah 半场角球让球、hc_ou/ac_ou 主/客队角球大小、ftc_x 角球独赢、g_ou 进球大小、g_ah 进球让球、g_1x2 胜平负、' +
+    'gh_ou/gh_ah/gh_1x2 半场进球大小/让球/胜平负、btts 双方进球）、l 盘口（让球是主队的让球数，负数=主队让；0.25 的倍数，例如 2.75=2.5/3）、' +
+    's 选项（大小盘 0大 1小；让球 0主 1客；三项 0主 1平 2客；双方进球 0是 1否）、o 欧赔、p 模型给的 [赢, 走水, 输] 机会（四分之一盘按两半平均）、fair 公平赔率、ev 存的时候的期望收益、' +
+    'src 赔率来源（空=自己填，其他=联网读到的庄家）、st 滚球时的状态 {min 分钟, per 半场, g 比分, c 角球, r 红牌}、b 滚球让球从这个比分起算、' +
+    'res 结算 {u 赢的单位（1 赢、0.5 赢半、0 走水、-0.5 输半、-1 输）, pl 每注 1 份的盈亏}。模型数据截至 data_until。unused_bets：联网读到但盘口板用不上的盘名。';
+  function openExport() {
+    var used = {}, ms = [];
+    REC.recs.forEach(function (r) { used[r.mid] = 1; });
+    Object.keys(used).forEach(function (id) { if (REC.matches[id]) ms.push(REC.matches[id]); });
+    var obj = { app: '角球进球预测', fmt: 1, ver: APP_VER, exported: new Date().toISOString().slice(0, 16), data_until: S.extraUntil || B.data_until, readme: README, matches: ms, recs: REC.recs,
+                unused_bets: S.net.unk || [] };
+    var text = JSON.stringify(obj), name = '角球进球预测_记录_' + dayKey(new Date()) + '.json', canShare = false;
+    try { canShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File([text], name, { type: 'application/json' })] })); } catch (e) { canShare = false; }
+    var h = '<p class="hint">' + REC.recs.length + ' 注、' + ms.length + ' 场。可以存成文件，或者复制文字直接贴给 Claude 分析。</p><div class="row-btns">' +
+      (canShare ? '<button class="btn pri" data-x="share">分享文件</button>' : '<button class="btn pri" data-x="copy">复制文字</button>') +
+      '<button class="btn" data-x="dl">下载文件</button></div>' + (canShare ? '<div class="row-btns"><button class="btn" data-x="copy">复制文字</button></div>' : '') +
+      '<textarea id="exp-text" class="ta">' + esc(text) + '</textarea>';
+    openSheet('导出记录', h, function (e) {
+      var t = closestAttr(e.target, 'data-x', $('sheet-body'));
+      if (!t) return;
+      var x = t.getAttribute('data-x');
+      if (x === 'share') navigator.share({ files: [new File([text], name, { type: 'application/json' })] }).then(function () { toast('已送出'); }, function (er) { if (er && er.name !== 'AbortError') toast('分享失败，请改用“复制文字”'); });
+      else if (x === 'dl') {
+        var url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.parentNode.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000); toast('已开始下载；没有反应就用“复制文字”');
+      } else if (x === 'copy') copyText($('exp-text'), text);
+    });
+  }
+  function copyText(ta, text) {
+    function fb() { try { ta.focus(); ta.select(); ta.setSelectionRange(0, text.length); document.execCommand('copy'); toast('已复制'); } catch (e) { toast('文字已全选，请手动复制'); } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('已复制，可以直接贴给 Claude'); }, fb); else fb();
+  }
+  function openImport() {
+    var h = '<p class="hint">把导出的文字贴到下面，或者选择导出的文件。会跟本机的记录合并，不会重复（例如把 iPhone 上的记录合并到 iPad）。</p>' +
+      '<textarea id="imp-text" class="ta" placeholder="贴上导出的文字"></textarea>' +
+      '<div class="row-btns"><button class="btn pri" data-x="go">导入这段文字</button><label class="btn filebtn">选择文件<input type="file" id="imp-file" accept=".json,application/json,text/plain"></label></div>';
+    openSheet('导入记录', h, function (e) { var t = closestAttr(e.target, 'data-x', $('sheet-body')); if (t && t.getAttribute('data-x') === 'go') doImport($('imp-text').value); });
+    $('imp-file').addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () { doImport(String(rd.result || '')); };
+      rd.readAsText(f);
+    });
+  }
+  function doImport(txt) {
+    var o;
+    try { o = JSON.parse(txt); } catch (e) { toast('读不懂这段文字，请贴完整的导出内容'); return; }
+    if (!o || o.app !== '角球进球预测' || !Array.isArray(o.recs) || !Array.isArray(o.matches)) { toast('这不是角球进球预测的导出档'); return; }
+    var nm = 0, nr = 0, byId = {};
+    o.matches.forEach(function (m) {
+      if (!m || !m.id) return;
+      var cur = REC.matches[m.id];
+      if (!cur) { m.res = m.res || {}; m.src = m.src || {}; REC.matches[m.id] = m; nm++; return; }
+      ['g', 'g1', 'c', 'c1'].forEach(function (k) { if (m.res && m.res[k]) setRes(cur, k, m.res[k], (m.src && m.src[k]) || '导入'); });
+    });
+    REC.recs.forEach(function (r, i) { byId[r.id] = i; });
+    o.recs.forEach(function (r) {
+      if (!r || !r.id || !r.mid || !MK[r.m] || !REC.matches[r.mid]) return;
+      if (byId[r.id] === undefined) { byId[r.id] = REC.recs.length; REC.recs.push(r); nr++; }
+      else if (!REC.recs[byId[r.id]].res && r.res) REC.recs[byId[r.id]] = r;
+    });
+    settleAll(); recSave(); closeSheet(); toast('已导入 ' + nr + ' 注、' + nm + ' 场'); renderRec();
+  }
+
+  /* ---------------- settings: API-Football key ---------------- */
+  function renderNet() {
+    var used = (S.net.used || {})[dayKey(new Date())] || 0;
+    $('about-net').innerHTML = '<h2>联网 <span class="sub">（自动填赔率、同步比分、查结果）</span></h2>' +
+      '<p class="small">用 API-Football 的免费 key，每天 100 次：读一场赛前赔率约 2 次，滚球同步约 3 次，查一场结果 1–3 次。' +
+      (S.net.from ? '已自动带入「' + esc(S.net.from) + '」里的 key。' : '') + '</p>' +
+      '<label class="f"><span>API key</span><input id="net-key" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="贴上 32 位的 key" value="' + esc(netKey()) + '"></label>' +
+      '<div class="row-btns"><button class="btn pri" id="net-save">保存</button><button class="btn" id="net-test">测试</button></div>' +
+      '<p class="hint" id="net-msg">本机今天已用 ' + used + ' 次。</p>' +
+      '<p class="small">没有 key 也能用：赔率自己填，比赛结果会从免费的公开数据里找（一般隔天更新）。免费 key 在 dashboard.api-football.com 注册。</p>';
+    $('net-save').addEventListener('click', function () { S.net.key = $('net-key').value.trim(); S.net.from = ''; save(); $('net-msg').textContent = S.net.key ? '已保存。' : '已清除。'; });
+    $('net-test').addEventListener('click', function () {
+      S.net.key = $('net-key').value.trim(); save();
+      $('net-msg').textContent = '测试中…';
+      api('/status').then(function (r) {
+        var q = (r && r.requests) || {}, sub = (r && r.subscription) || {};
+        $('net-msg').textContent = 'key 可以用：方案 ' + (sub.plan || '?') + '，今天已用 ' + (q.current === undefined ? '?' : q.current) + ' / ' + (q.limit_day || '?') + ' 次（所有用这个 key 的 app 合计）。';
+      }, function (e) { $('net-msg').textContent = '不行：' + e.message; });
+    });
+  }
+
   /* ---------------- layout: one column on phones, two on tablets ---------------- */
   var ORDER = {
     pre: { one: ['p-match', 'pre-sum', 'pre-board', 'pre-kpi', 'pre-corners', 'pre-goals', 'p-tolive'],
            L: ['p-match', 'pre-board', 'p-tolive'], R: ['pre-sum', 'pre-kpi', 'pre-corners', 'pre-goals'] },
     live: { one: ['lv-boardp', 'lv-counters', 'live-kpi', 'live-sum', 'live-board', 'live-corners', 'live-goals', 'lv-resetbox'],
             L: ['lv-boardp', 'lv-counters', 'live-kpi', 'live-corners', 'live-goals', 'lv-resetbox'], R: ['live-sum', 'live-board'] },
-    about: { one: ['about-data', 'about-set', 'about-text'], L: ['about-data', 'about-set'], R: ['about-text'] }
+    rec: { one: ['rec-act', 'rec-stats', 'rec-list'], L: ['rec-act', 'rec-stats'], R: ['rec-list'] },
+    about: { one: ['about-data', 'about-net', 'about-set', 'about-text'], L: ['about-data', 'about-net', 'about-set'], R: ['about-text'] }
   };
   var wideNow = null;
   function layout() {
     var wide = (window.innerWidth || document.documentElement.clientWidth) >= 740;
     if (wide === wideNow) return;
     wideNow = wide;
-    ['pre', 'live', 'about'].forEach(function (v) {
+    ['pre', 'live', 'rec', 'about'].forEach(function (v) {
       var L = $(v + '-L'), R = $(v + '-R'), o = ORDER[v];
       (wide ? o.L : o.one).forEach(function (id) { L.appendChild($(id)); });
       if (wide) o.R.forEach(function (id) { R.appendChild($(id)); });
@@ -966,8 +1634,9 @@
   /* ---------------- wiring ---------------- */
   function setTab(t) {
     if (KP.open) { if (KP.mode === 'int') { KP.open = false; kpHide(); } else kpClose(true); }
+    if (!$('sheet').hidden) closeSheet();
     S.tab = t; save();
-    ['pre', 'live', 'about'].forEach(function (k) {
+    ['pre', 'live', 'rec', 'about'].forEach(function (k) {
       $('v-' + k).hidden = k !== t;
       $('tab-' + k).setAttribute('aria-selected', k === t ? 'true' : 'false');
     });
@@ -978,6 +1647,7 @@
     $('datechip').textContent = '数据截至 ' + (S.extraUntil || B.data_until);
     if (S.tab === 'pre') renderPre();
     else if (S.tab === 'live') renderLive();
+    else if (S.tab === 'rec') renderRec();
     else renderAbout();
   }
   var tmr = null;
@@ -988,7 +1658,7 @@
   }
   function freshLive() {
     S.live = { per: 1, ht: false, baseMin: 0, baseTs: 0, running: false, added: '', added1: '', gh: 0, ga: 0, ch: 0, ca: 0, rh: 0, ra: 0 };
-    board().live.forEach(function (r) { r.o = r.o.map(function () { return ''; }); r.ts = 0; r.sig = ''; if (hasLine(r.m)) r.auto = true; });
+    board().live.forEach(function (r) { r.o = r.o.map(function () { return ''; }); r.os = r.o.map(function () { return ''; }); r.alt = null; r.book = ''; r.ts = 0; r.sig = ''; if (hasLine(r.m)) r.auto = true; });
   }
   function showOther() {
     $('o-avg').textContent = (num(S.setup.avg) || 10).toFixed(1);
@@ -997,7 +1667,17 @@
 
   $('tab-pre').addEventListener('click', function () { setTab('pre'); });
   $('tab-live').addEventListener('click', function () { setTab('live'); });
+  $('tab-rec').addEventListener('click', function () { setTab('rec'); });
   $('tab-about').addEventListener('click', function () { setTab('about'); });
+  ['pre', 'live'].forEach(function (kind) {
+    $(kind + '-sum').addEventListener('click', function (e) {
+      var t = closestAttr(e.target, 'data-a', this);
+      if (t && !t.disabled && (t.getAttribute('data-a') === 'save-pos' || t.getAttribute('data-a') === 'save-all')) saveRecs(kind, t.getAttribute('data-a') === 'save-pos');
+    });
+  });
+  $('v-rec').addEventListener('click', onRecClick);
+  $('sheet-x').addEventListener('click', closeSheet);
+  $('sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); else if (SHEET) SHEET(e); });
   $('sel-league').addEventListener('change', function () {
     var v = this.value;
     if (v === 'other') { S.setup.other = true; }
@@ -1049,7 +1729,7 @@
   });
   $('ck-half').addEventListener('click', function () {
     var L = S.live;
-    if (L.per === 1 && !L.ht) { L.ht = true; L.running = false; L.baseMin = 45; }
+    if (L.per === 1 && !L.ht) { L.ht = true; L.running = false; L.baseMin = 45; board().htSnap = { c: [L.ch, L.ca], g: [L.gh, L.ga] }; }
     else if (L.ht) { L.ht = false; L.per = 1; L.baseMin = 45; L.running = false; }
     else { L.per = 1; L.ht = true; L.running = false; L.baseMin = 45; L.added = L.added1 || ''; }
     save(); renderLive();
