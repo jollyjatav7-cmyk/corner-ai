@@ -1,0 +1,16 @@
+<div class="toast" id="upd-toast" hidden><span id="upd-toast-msg">新版本已经下载好</span><button class="btn pri" id="upd-toast-btn">现在更新</button></div>
+<script>
+(function () {
+  if (!('serviceWorker' in navigator) || !window.isSecureContext || location.protocol === 'file:') return;
+  var had = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!had) { had = true; return; }
+    var t = document.getElementById('upd-toast');
+    t.hidden = false;
+    document.getElementById('upd-toast-btn').onclick = function () { location.reload(); };
+  });
+  navigator.serviceWorker.register('./sw.js').then(function (reg) {
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') reg.update().catch(function () {}); });
+  }).catch(function () {});
+})();
+</script>

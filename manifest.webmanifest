@@ -1,0 +1,17 @@
+{
+  "name": "角球进球预测",
+  "short_name": "角球进球预测",
+  "description": "赛前与滚球的角球、进球概率和公平赔率",
+  "lang": "zh-Hans",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0E1512",
+  "theme_color": "#151F1B",
+  "icons": [
+    { "src": "./icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
