@@ -41,7 +41,7 @@ head = '''<!doctype html>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
 '''
 title_end = page.index('</title>') + len('</title>')
-body_start = page.index('<header class="top">')
+body_start = page.index('<header class="top"')
 pwa = (head + page[:body_start] + '</head>\n<body>\n' + page[body_start:].replace('<!--SW-->', read(SRC, 'sw_register.html'))
        + '\n</body>\n</html>\n')
 os.makedirs(OUT, exist_ok=True)

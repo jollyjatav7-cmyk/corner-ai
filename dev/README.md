@@ -6,12 +6,12 @@ The live app is the single file `index.html` in the repo root (served by GitHub 
 | --- | --- |
 | `src/app.html` | Layout and styles. Placeholders `/*BUNDLE*/`, `/*CORE*/`, `/*UI*/`, `<!--SW-->` are filled by the build. |
 | `src/app_core.js` | Model core (no DOM): rating replay, odds → expected goals (Dixon-Coles), minute engine for goals and corners, tempo/dominance corner distribution, bet evaluation (half, integer and quarter lines). |
-| `src/app_ui.js` | UI: pre-match, live (clock, counters), value check, one/two-column layout, online refresh from open-matchday. |
+| `src/app_ui.js` | UI: pre-match, live (clock, counters), market board (every entered market/side → model win/push chance, fair odds, EV, ranked; 1X2 + main goals line calibrate the model), on-screen keypad and line steppers (quarter lines shown as a/b), one/two-column layout, online refresh from open-matchday. Boards are stored per match in localStorage. |
 | `src/about.html` | Text of the 说明 page. |
 | `src/sw.js` | Service worker. **Bump `CACHE = 'corner-ai-vN'` on every release**, or phones keep the old version. Only handles requests under its own path (other apps share the github.io origin). |
 | `data/bundle.json` | Team ratings at the start of 2026/27 + this season's matches (replayed in the browser), GLM coefficients, minute multipliers, dispersion and persistence parameters. Made by `model/export_bundle.py`. |
 | `model/` | Python pipeline (fitting, validation, export). Paths inside are absolute to the build machine; adjust before re-running. |
-| `tests/` | `uitest.py` (Playwright: iPad 1180×820 and 820×1180, iPhone 390×844 and 375×667, service worker), `test_core.js` / `test_edge.js` (node: model outputs), `model/ref_check.py` (JS == Python). |
+| `tests/` | `uitest.py` (Playwright: iPad 1180×820 and 820×1180, iPhone 390×844 and 375×667; drives the board with the keypad only and checks every shown EV against the core, live handicap counting, stale live odds, storage migration, service worker), `test_core.js` / `test_edge.js` (node: model outputs), `model/ref_check.py` (JS == Python). |
 | `tools/make_icons.py` | Home-screen icons. |
 
 ## Build and release

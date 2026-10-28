@@ -22,6 +22,7 @@
   --pos-soft: rgba(82,196,140,0.18);
   --band: #151f1b;
   --neg-soft: rgba(238,109,92,0.18);
+  --accent-soft: rgba(242,182,50,0.16);
   --font-num: "Barlow Condensed", "DIN Alternate", "DIN Condensed", "Arial Narrow", sans-serif;
   --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
   --r: 12px;
@@ -30,18 +31,18 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #f2f5f3; --panel: #ffffff; --panel-2: #eaf0ec; --line: #d3dfd8; --fg: #13201a; --muted: #5a6d63;
-    --accent: #b9770e; --accent-ink: #ffffff; --home: #11867a; --away: #c75a3f; --pos: #1d8a57; --neg: #c4432f; --pos-soft: rgba(29,138,87,0.13); --neg-soft: rgba(196,67,47,0.12);
+    --accent: #b9770e; --accent-ink: #ffffff; --home: #11867a; --away: #c75a3f; --pos: #1d8a57; --neg: #c4432f; --pos-soft: rgba(29,138,87,0.13); --neg-soft: rgba(196,67,47,0.12); --accent-soft: rgba(185,119,14,0.13);
     color-scheme: light;
   }
 }
 :root[data-theme="light"] {
   --bg: #f2f5f3; --panel: #ffffff; --panel-2: #eaf0ec; --line: #d3dfd8; --fg: #13201a; --muted: #5a6d63;
-  --accent: #b9770e; --accent-ink: #ffffff; --home: #11867a; --away: #c75a3f; --pos: #1d8a57; --neg: #c4432f; --pos-soft: rgba(29,138,87,0.13); --neg-soft: rgba(196,67,47,0.12);
+  --accent: #b9770e; --accent-ink: #ffffff; --home: #11867a; --away: #c75a3f; --pos: #1d8a57; --neg: #c4432f; --pos-soft: rgba(29,138,87,0.13); --neg-soft: rgba(196,67,47,0.12); --accent-soft: rgba(185,119,14,0.13);
   color-scheme: light;
 }
 :root[data-theme="dark"] {
   --bg: #0e1512; --panel: #151f1b; --panel-2: #1b2722; --line: #2a3a33; --fg: #e7eee9; --muted: #8fa49a;
-  --accent: #f2b632; --accent-ink: #1d1503; --home: #4cc2b1; --away: #f0866c; --pos: #52c48c; --neg: #ee6d5c; --pos-soft: rgba(82,196,140,0.18); --neg-soft: rgba(238,109,92,0.18);
+  --accent: #f2b632; --accent-ink: #1d1503; --home: #4cc2b1; --away: #f0866c; --pos: #52c48c; --neg: #ee6d5c; --pos-soft: rgba(82,196,140,0.18); --neg-soft: rgba(238,109,92,0.18); --accent-soft: rgba(242,182,50,0.16);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -187,10 +188,115 @@ main { padding-bottom: calc(40px + var(--pip-bot)); }
   .score { font-size: 36px; }
 }
 @media (max-width: 380px) { .kpi .v { font-size: 26px; } .score { font-size: 38px; } }
+/* ---------- steppers, chips ---------- */
+div.f { display: block; font-size: 12px; color: var(--muted); min-width: 0; }
+div.f > span:first-child { display: block; margin-bottom: 3px; }
+.stp.wide .lv { color: var(--fg); }
+.kp-info b.pos { color: var(--pos); } .kp-info b.neg { color: var(--neg); }
+.stp { display: inline-grid; grid-template-columns: 34px minmax(56px, auto) 34px; align-items: center; border: 1px solid var(--line);
+  border-radius: 9px; overflow: hidden; background: var(--panel); vertical-align: middle; }
+.stp button { border: 0; height: 34px; background: var(--line); color: var(--fg); font-size: 20px; font-weight: 700; padding: 0; line-height: 1; }
+.stp .lv { text-align: center; font-family: var(--font-num); font-size: 18px; font-weight: 700; padding: 0 6px; white-space: nowrap; }
+.stp.wide { display: grid; grid-template-columns: 44px 1fr 44px; background: var(--panel-2); }
+.stp.wide button { height: 40px; }
+.chips { display: -webkit-box; display: flex; flex-wrap: wrap; }
+.chips > * { margin: 0 6px 6px 0; }
+.chipb { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; }
+.chipb[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* ---------- market board (盘口板) ---------- */
+.bd-note { margin: 0 0 4px; }
+.seg { display: -webkit-box; display: flex; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.seg > * { margin: 0 6px 6px 0; }
+.br { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px 4px; background: var(--panel-2); margin-top: 8px; }
+.br.act { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.br.off { opacity: 0.55; }
+.br.stale { border-style: dashed; }
+.stl { font-size: 12px; color: var(--accent); margin: 0 0 4px; line-height: 1.4; }
+.stl button { margin-left: 6px; padding: 2px 9px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); }
+.br-h { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; grid-gap: 6px; gap: 6px; min-height: 36px; }
+.br-n { font-weight: 700; font-size: 14px; min-width: 0; line-height: 1.3; }
+.br-n small { font-weight: 500; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.br-n small.bad { color: var(--neg); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: var(--panel); color: var(--muted); vertical-align: 1px; white-space: nowrap; }
+.br-x { border: 0; background: transparent; color: var(--muted); font-size: 15px; width: 30px; height: 34px; padding: 0; }
+.sdl { display: grid; grid-template-columns: 44px 64px minmax(0, 1fr) 50px 60px; align-items: center; grid-gap: 6px; gap: 6px; padding: 3px 0; }
+.sdl .sl { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.ob { height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 0 4px; font-family: var(--font-num); font-size: 20px; font-weight: 700; }
+.ob .ph { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.ob.on { border-color: var(--accent); background: var(--accent-soft); }
+.ob.bad { color: var(--neg); }
+.sdl .sw { text-align: right; font-family: var(--font-num); font-size: 17px; font-weight: 600; line-height: 1.1; }
+.sdl .sw small { display: block; font-family: var(--font-ui); font-size: 10.5px; font-weight: 500; color: var(--muted); }
+.sdl .sf { text-align: right; font-family: var(--font-num); font-size: 16px; color: var(--muted); }
+.sdl .se { text-align: right; }
+.sdl .se .pill { padding: 2px 6px; font-size: 12.5px; }
+.sdl.lg { font-size: 11px; color: var(--muted); padding: 6px 9px 0; }
+.sdl.lg span { text-align: right; white-space: nowrap; }
+.sdl.lg span:nth-child(2) { text-align: center; }
+.pill.mut { background: var(--panel); color: var(--muted); }
+.addb { margin-top: 12px; }
+.addl { display: -webkit-box; display: flex; flex-wrap: wrap; align-items: center; }
+.addl .al { font-size: 12.5px; color: var(--muted); margin: 0 8px 6px 0; font-weight: 700; }
+.addl .chipb { margin: 0 6px 6px 0; }
+
+/* summary */
+.si { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; grid-gap: 1px 8px; gap: 1px 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.si:last-of-type { border-bottom: 0; }
+.si .t { font-weight: 700; font-size: 14.5px; min-width: 0; }
+.si .t .o { font-family: var(--font-num); color: var(--accent); margin-left: 4px; font-size: 17px; }
+.si .m { grid-column: 1; font-size: 12px; color: var(--muted); }
+.si .pill { grid-row: 1 / span 2; grid-column: 2; font-size: 15px; }
+.si.weak .pill { background: var(--panel-2); color: var(--pos); }
+
+/* ---------- keypad sheet ---------- */
+.kp { position: fixed; left: 0; right: 0; bottom: var(--pip-bot); z-index: 30; background: var(--panel); border-top: 1px solid var(--line);
+  box-shadow: 0 -10px 28px rgba(0,0,0,0.35);
+  padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  padding-left: 12px; padding-right: 12px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+.kp-in { max-width: 560px; margin: 0 auto; }
+.kp-hd { display: -webkit-box; display: flex; align-items: center; }
+.kp-hd .tt { -webkit-box-flex: 1; flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 15px; }
+.kp-hd .tt small { font-weight: 500; color: var(--muted); font-size: 12px; margin-left: 4px; }
+.kp-hd .btn { padding: 6px 16px; }
+.kp-line { display: -webkit-box; display: flex; align-items: center; margin-top: 6px; }
+.kp-line .ll { font-size: 12.5px; color: var(--muted); margin-right: 8px; }
+.kp-sides { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 6px; gap: 6px; margin-top: 8px; }
+.kp-sides.c3 { grid-template-columns: 1fr 1fr 1fr; }
+.kp-sides.c1 { grid-template-columns: 1fr; }
+.kp-side { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 3px 8px 4px; text-align: left; min-width: 0; }
+.kp-side .l { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kp-side .v { display: block; font-family: var(--font-num); font-size: 25px; font-weight: 700; line-height: 1.1; min-height: 28px; }
+.kp-side .v .ph { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--muted); }
+.kp-side.on { border-color: var(--accent); background: var(--accent-soft); }
+.kp-side.on .v { color: var(--accent); }
+.kp-side.old .v { color: var(--muted); }
+.kp-info { font-size: 12.5px; color: var(--muted); margin-top: 6px; min-height: 18px; }
+.kp-info b { color: var(--fg); }
+.kp-rec { display: -webkit-box; display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 6px; }
+.kp-rec .chipb { margin-right: 6px; -webkit-box-flex: 0; flex: 0 0 auto; font-family: var(--font-num); font-size: 15px; padding: 3px 10px; }
+.kp-rec .rl { font-size: 12px; color: var(--muted); margin-right: 6px; -webkit-align-self: center; align-self: center; white-space: nowrap; }
+.kp-keys { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; grid-gap: 6px; gap: 6px; margin-top: 8px; }
+.kp-keys button { height: 46px; border: 0; border-radius: 10px; background: var(--panel-2); font-family: var(--font-num); font-size: 25px; font-weight: 700; padding: 0; }
+.kp-keys button:active { background: var(--line); }
+.kp-keys button:disabled { opacity: 0.35; }
+.kp-keys .kw { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--muted); }
+.kp-keys .kn { grid-column: span 3; background: var(--accent); color: var(--accent-ink); font-family: var(--font-ui); font-size: 16px; }
+.kp-keys .kn:active { background: var(--accent); opacity: 0.85; }
+body.kp-open main { padding-bottom: calc(var(--kp-h, 380px) + 24px + var(--pip-bot)); }
+@media (max-height: 700px) { .kp-keys button { height: 42px; } .kp-side .v { font-size: 22px; min-height: 25px; } }
+
+/* live time controls */
+.trow { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; grid-gap: 8px; gap: 8px; margin-top: 8px; }
+.trow .tl { font-size: 12.5px; color: var(--muted); }
+.trow .chips { margin-bottom: -6px; }
+.trow .chipb { padding: 5px 9px; min-width: 34px; }
+@media (min-width: 1000px) { .sdl { grid-template-columns: 56px 86px 84px 70px 76px; justify-content: space-between; } }
+@media (max-width: 380px) { .sdl { grid-template-columns: 40px 60px minmax(0, 1fr) 48px 56px; grid-gap: 5px; gap: 5px; } .sdl .sf { font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
-<header class="top">
+<header class="top" id="topbar">
   <div class="top-row">
     <div class="brand">角球<b>·</b>进球预测</div>
     <div class="datechip" id="datechip"></div>
@@ -219,31 +325,18 @@ main { padding-bottom: calc(40px + var(--pip-bot)); }
         <div class="fg c2" style="margin-top:8px">
           <label class="f"><span>主队名（可不填）</span><input id="o-home" type="text" placeholder="主队"></label>
           <label class="f"><span>客队名（可不填）</span><input id="o-away" type="text" placeholder="客队"></label>
-          <label class="f"><span>该联赛场均角球</span><input id="o-avg" class="num" type="number" step="0.1" inputmode="decimal" value="10.0"></label>
-          <label class="f"><span>主队角球占比 %</span><input id="o-share" class="num" type="number" step="1" inputmode="numeric" value="54"></label>
+          <div class="f"><span>该联赛场均角球</span><div class="stp wide"><button data-st="avg" data-d="-0.5" aria-label="减少">−</button><span class="lv" id="o-avg">10.0</span><button data-st="avg" data-d="0.5" aria-label="增加">+</button></div></div>
+          <div class="f"><span>主队角球占比</span><div class="stp wide"><button data-st="share" data-d="-1" aria-label="减少">−</button><span class="lv" id="o-share">54%</span><button data-st="share" data-d="1" aria-label="增加">+</button></div></div>
         </div>
-        <p class="hint">数据库外的联赛：必须填胜平负和大小球赔率，模型用赔率换算强弱，再按联赛场均角球推算。精度低于数据库内联赛。</p>
+        <p class="hint">数据库外的联赛：必须在盘口板里填胜平负（最好也填进球大小），模型用赔率换算强弱，再按联赛场均角球推算。精度低于数据库内联赛。</p>
       </div>
     </div>
 
-    <div class="panel" id="p-odds">
-      <h2>赔率 <span class="sub">（欧赔，选填，填了更准）</span></h2>
-      <div class="fg c3">
-        <label class="f"><span>主胜</span><input id="od-h" class="num" type="number" step="0.01" inputmode="decimal" placeholder="—"></label>
-        <label class="f"><span>平</span><input id="od-d" class="num" type="number" step="0.01" inputmode="decimal" placeholder="—"></label>
-        <label class="f"><span>客胜</span><input id="od-a" class="num" type="number" step="0.01" inputmode="decimal" placeholder="—"></label>
-        <label class="f"><span>进球盘口</span><input id="od-l" class="num" type="number" step="0.25" inputmode="decimal" value="2.5"></label>
-        <label class="f"><span>大</span><input id="od-o" class="num" type="number" step="0.01" inputmode="decimal" placeholder="—"></label>
-        <label class="f"><span>小</span><input id="od-u" class="num" type="number" step="0.01" inputmode="decimal" placeholder="—"></label>
-      </div>
-      <p class="hint" id="odds-note"></p>
-      <p class="hint">滚球进行中请保持这里的赛前赔率不变，模型以赛前赔率为基准推算。换比赛时滚球记录会自动清零。</p>
-    </div>
-
+    <div class="panel" id="pre-sum"></div>
+    <div class="panel" id="pre-board"></div>
     <div class="panel" id="pre-kpi"></div>
     <div class="panel" id="pre-corners"></div>
     <div class="panel" id="pre-goals"></div>
-    <div class="panel" id="pre-ev"></div>
     <div id="p-tolive"><button class="btn pri" id="to-live" style="width:100%">用这场比赛开始滚球 →</button></div>
    </div>
    <div class="col" id="pre-R"></div>
@@ -267,10 +360,8 @@ main { padding-bottom: calc(40px + var(--pip-bot)); }
       </div>
       <details class="tset" id="lv-timeset">
         <summary>设定分钟 · 补时</summary>
-        <div class="fg c2" style="margin-top:8px">
-          <label class="f"><span>当前分钟</span><input id="lv-setmin" class="num" type="number" inputmode="numeric" min="0" max="130" placeholder="例如 63"></label>
-          <label class="f"><span>本半场补时（举牌）</span><input id="lv-added" class="num" type="number" inputmode="numeric" min="0" max="20" placeholder="未知"></label>
-        </div>
+        <div class="trow"><span class="tl">当前分钟</span><div><button class="btn" id="lv-setmin">输入分钟</button></div></div>
+        <div class="trow"><span class="tl">本半场补时<br>（举牌）</span><div class="chips" id="lv-added"></div></div>
       </details>
     </div>
 
@@ -284,7 +375,8 @@ main { padding-bottom: calc(40px + var(--pip-bot)); }
     <div class="panel" id="live-kpi"></div>
     <div class="panel" id="live-corners"></div>
     <div class="panel" id="live-goals"></div>
-    <div class="panel" id="live-ev"></div>
+    <div class="panel" id="live-sum"></div>
+    <div class="panel" id="live-board"></div>
     <div class="panel" id="lv-resetbox">
       <button class="btn ghost" id="lv-reset" style="width:100%">清零本场滚球记录</button>
       <div class="confirm" id="lv-reset-confirm" hidden>
@@ -313,6 +405,22 @@ main { padding-bottom: calc(40px + var(--pip-bot)); }
    <div class="col" id="about-R"></div>
   </section>
 </main>
+
+<div class="kp" id="kp" hidden>
+  <div class="kp-in">
+    <div class="kp-hd"><div class="tt" id="kp-title"></div><button class="btn pri" data-kp="done" id="kp-done">完成</button></div>
+    <div class="kp-line" id="kp-line"><span class="ll">盘口</span><span class="stp"><button data-kp="dec" aria-label="盘口减">−</button><span class="lv" id="kp-lv"></span><button data-kp="inc" aria-label="盘口加">+</button></span></div>
+    <div class="kp-sides" id="kp-sides"></div>
+    <div class="kp-info" id="kp-info"></div>
+    <div class="kp-rec" id="kp-rec"></div>
+    <div class="kp-keys">
+      <button data-kp="1">1</button><button data-kp="2">2</button><button data-kp="3">3</button><button data-kp="back" class="kw" aria-label="退格">⌫</button>
+      <button data-kp="4">4</button><button data-kp="5">5</button><button data-kp="6">6</button><button data-kp="." id="kp-dot">.</button>
+      <button data-kp="7">7</button><button data-kp="8">8</button><button data-kp="9">9</button><button data-kp="0">0</button>
+      <button data-kp="clr" class="kw">清空</button><button data-kp="next" class="kn" id="kp-next">下一个 →</button>
+    </div>
+  </div>
+</div>
 
 <script>var BUNDLE = /*BUNDLE*/null;</script>
 <script>/*CORE*/</script>
